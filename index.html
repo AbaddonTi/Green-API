@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GREEN-API Интеграция</title>
+  <style>
+    /* === CSS Переменные === */
+    :root {
+      --primary-color: #28a745;
+      --primary-hover: #218838;
+      --secondary-color: #007bff;
+      --secondary-hover: #0069d9;
+      --error-bg: #f8d7da;
+      --error-text: #721c24;
+      --success-bg: #d4edda;
+      --success-text: #155724;
+      --background-color: #f0f2f5;
+      --container-bg: #ffffff;
+      --border-color: #ddd;
+      --text-color: #333;
+      --font-family: 'Arial', sans-serif;
+      --transition-speed: 0.3s;
+      --max-container-width: 900px;
+      --padding: 20px;
+      --gap: 20px;
+      --max-container-height: 90vh;
+      --message-max-width: 100%;
+      --message-padding: 10px 15px;
+    }
+
+    /* === Общие стили === */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family);
+      margin: 0;
+      padding: 0;
+      background-color: var(--background-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* === Контейнер === */
+    .container {
+      width: 100%;
+      max-width: var(--max-container-width);
+      max-height: var(--max-container-height);
+      background: var(--container-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: var(--padding);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: row;
+      gap: var(--gap);
+      overflow: hidden;
+    }
+
+    @media (max-width: 800px) {
+      .container {
+        flex-direction: column;
+        max-height: 95vh;
+      }
+    }
+
+    /* === Левая панель === */
+    .left-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--gap);
+      min-width: 280px;
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-weight: bold;
+      color: var(--text-color);
+    }
+
+    .form-group input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+      color: var(--text-color);
+      width: 100%;
+    }
+
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .button-group button {
+      padding: 12px 20px;
+      background-color: var(--primary-color);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color var(--transition-speed) ease;
+      font-size: 16px;
+      word-wrap: break-word;
+      white-space: normal;
+    }
+
+    .button-group button:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .button-group .secondary-button {
+      background-color: var(--secondary-color);
+    }
+
+    .button-group .secondary-button:hover {
+      background-color: var(--secondary-hover);
+    }
+
+    /* === Правая панель === */
+    .right-panel {
+      flex: 1;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      overflow-y: auto;
+      font-family: Consolas, "Courier New", monospace;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .right-panel pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin: 0;
+      color: var(--text-color);
+      font-size: 14px;
+      flex-grow: 1;
+    }
+
+    /* === Сообщения об ошибках и успехах === */
+    .message {
+      padding: var(--message-padding);
+      border-radius: 4px;
+      font-size: 14px;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 40px);
+      max-width: 600px;
+      opacity: 1;
+      transition: opacity var(--transition-speed) ease;
+      z-index: 1000;
+      pointer-events: none;
+      word-wrap: break-word;
+      white-space: normal;
+    }
+
+    .message.error {
+      background-color: var(--error-bg);
+      color: var(--error-text);
+    }
+
+    .message.success {
+      background-color: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .message.fade-out {
+      opacity: 0;
+    }
+
+    /* === Placeholder Message === */
+    #placeholderMessage {
+      padding: 10px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    /* === Скроллбар для сообщений === */
+    @media (max-width: 600px) {
+      .message {
+        width: calc(100% - 20px);
+        left: 50%;
+        transform: translateX(-50%);
+      }
+    }
+  </style>
+</head>
+<body>
+<!-- === Сообщения об ошибках и успехах === -->
+<div id="messageContainer"></div>
+
+<main class="container">
+  <!-- === Левая панель: Формы и кнопки === -->
+  <section class="left-panel">
+    <!-- Подключение к инстансу -->
+    <div class="form-group">
+      <label for="idInstance">idInstance</label>
+      <input type="text" id="idInstance" placeholder="Ваш idInstance (только число)">
+    </div>
+    <div class="form-group">
+      <label for="apiTokenInstance">ApiTokenInstance</label>
+      <input type="text" id="apiTokenInstance" placeholder="Ваш ApiTokenInstance">
+    </div>
+    <!-- Методы getSettings и getStateInstance -->
+    <div class="button-group">
+      <button id="getSettingsBtn">Получить настройки (getSettings)</button>
+      <button class="secondary-button" id="getStateInstanceBtn">Получить состояние инстанса (getStateInstance)</button>
+    </div>
+    <!-- Отправка сообщения -->
+    <div class="form-group">
+      <label for="chatIdMessage">chatId для отправки сообщения</label>
+      <input type="text" id="chatIdMessage" placeholder="Например: 11001234567@c.us">
+    </div>
+    <div class="form-group">
+      <label for="message">Сообщение</label>
+      <input type="text" id="message" placeholder="Ваше сообщение">
+    </div>
+    <div class="button-group">
+      <button id="sendMessageBtn">Отправить сообщение (sendMessage)</button>
+    </div>
+    <!-- Отправка файла по URL -->
+    <div class="form-group">
+      <label for="chatIdFile">chatId для отправки файла</label>
+      <input type="text" id="chatIdFile" placeholder="Например: 11001234567@c.us">
+    </div>
+    <div class="form-group">
+      <label for="urlFile">URL файла</label>
+      <input type="url" id="urlFile" placeholder="https://example.com/file.jpg">
+    </div>
+    <div class="form-group">
+      <label for="fileName">Имя файла</label>
+      <input type="text" id="fileName" placeholder="file.jpg">
+    </div>
+    <div class="form-group">
+      <label for="caption">Описание (не обязательно)</label>
+      <input type="text" id="caption" placeholder="Описание файла">
+    </div>
+    <div class="button-group">
+      <button id="sendFileByUrlBtn">Отправить файл по URL (sendFileByUrl)</button>
+    </div>
+  </section>
+
+  <!-- === Правая панель: Ответы API и сообщения === -->
+  <section class="right-panel">
+    <!-- Сообщение-подсказка -->
+    <div id="placeholderMessage">Здесь будут отображаться ответы API после заполнения полей и выполнения действий.</div>
+    <!-- Область для отображения ответов API -->
+    <pre id="apiResponse"></pre>
+  </section>
+</main>
+
+<script>
+  // === Основные элементы ===
+  const output = document.getElementById('apiResponse');
+  const placeholderMessage = document.getElementById('placeholderMessage');
+  const messageContainer = document.getElementById('messageContainer');
+
+  // === Кнопки ===
+  const getSettingsBtn = document.getElementById('getSettingsBtn');
+  const getStateInstanceBtn = document.getElementById('getStateInstanceBtn');
+  const sendMessageBtn = document.getElementById('sendMessageBtn');
+  const sendFileByUrlBtn = document.getElementById('sendFileByUrlBtn');
+
+  // === Добавление обработчиков событий ===
+  getSettingsBtn.addEventListener('click', getSettings);
+  getStateInstanceBtn.addEventListener('click', getStateInstance);
+  sendMessageBtn.addEventListener('click', sendMessage);
+  sendFileByUrlBtn.addEventListener('click', sendFileByUrl);
+
+  /**
+   * Функция для отображения сообщений об ошибках и успехах
+   * @param {string} message - Сообщение для отображения (HTML)
+   * @param {string} type - Тип сообщения ('error' или 'success')
+   */
+  function displayMessage(message, type) {
+    // Создание элемента сообщения
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${type}`;
+    messageDiv.innerHTML = message;
+
+    // Вставка сообщения в контейнер сообщений
+    messageContainer.appendChild(messageDiv);
+
+    // Плавное исчезновение сообщения через 2.5 секунды
+    setTimeout(() => {
+      messageDiv.classList.add('fade-out');
+    }, 2500);
+
+    // Удаление сообщения из DOM после 3 секунд
+    setTimeout(() => {
+      messageDiv.remove();
+    }, 3000);
+  }
+
+  /**
+   * Функция для получения и валидации деталей API
+   * @returns {Object} - Объект с idInstance и apiTokenInstance
+   * @throws {Error} - Если детали API не заполнены или некорректны
+   */
+  function getApiDetails() {
+    const idInstance = document.getElementById('idInstance').value.trim();
+    const apiToken = document.getElementById('apiTokenInstance').value.trim();
+
+    if (!idInstance || !apiToken) {
+      displayMessage('Пожалуйста, заполните <strong>idInstance</strong> и <strong>ApiTokenInstance</strong>.<br>Пример: idInstance: <code>7103</code>, ApiTokenInstance: <code>1352d2c46f2742029a3969ec375c9c11ac46da099fb44e669e</code>', 'error');
+      throw new Error('Missing API details');
+    }
+
+    // Проверка, что idInstance содержит только цифры
+    if (!/^\d+$/.test(idInstance)) {
+      displayMessage('idInstance должен содержать только цифры.<br>Пример: <code>7103</code>', 'error');
+      throw new Error('Invalid idInstance format');
+    }
+
+    return { idInstance, apiToken };
+  }
+
+  /**
+   * Функция для обработки ответов от API
+   * @param {Response} response - Объект ответа Fetch API
+   * @returns {Promise<Object>} - Распарсенный JSON ответ
+   * @throws {Error} - Если ответ не OK
+   */
+  async function handleApiResponse(response) {
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        errorData = { error: 'Неизвестная ошибка' };
+      }
+
+      let errorMessage = `Ошибка ${response.status}: ${errorData.error || response.statusText}`;
+
+      // Добавление рекомендаций на основе кода ошибки
+      switch (response.status) {
+        case 400:
+          errorMessage += '<br>Рекомендация: Проверьте правильность введённых параметров.';
+          break;
+        case 401:
+          errorMessage += '<br>Рекомендация: Проверьте правильность вашего apiTokenInstance.';
+          break;
+        case 404:
+          errorMessage += '<br>Рекомендация: Убедитесь, что idInstance верен и инстанс существует.';
+          break;
+        default:
+          errorMessage += '<br>Рекомендация: Проверьте введённые данные и повторите попытку.';
+      }
+
+      displayMessage(errorMessage, 'error');
+      throw new Error(`Ошибка ${response.status}: ${errorData.error || response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Функция для получения настроек инстанса
+   */
+  async function getSettings() {
+    try {
+      const { idInstance, apiToken } = getApiDetails();
+      const response = await fetch(`/api/getSettings/${idInstance}/${apiToken}`, {
+        method: 'GET',
+      });
+
+      const data = await handleApiResponse(response);
+      output.textContent = JSON.stringify(data, null, 4);
+      displayMessage('Настройки успешно получены.', 'success');
+
+      // Скрытие подсказки при наличии данных
+      placeholderMessage.style.display = 'none';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  /**
+   * Функция для получения состояния инстанса
+   */
+  async function getStateInstance() {
+    try {
+      const { idInstance, apiToken } = getApiDetails();
+      const response = await fetch(`/api/getStateInstance/${idInstance}/${apiToken}`, {
+        method: 'GET',
+      });
+
+      const data = await handleApiResponse(response);
+      output.textContent = JSON.stringify(data, null, 4);
+      displayMessage('Состояние инстанса успешно получено.', 'success');
+
+      // Скрытие подсказки при наличии данных
+      placeholderMessage.style.display = 'none';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  /**
+   * Функция для отправки сообщения
+   */
+  async function sendMessage() {
+    try {
+      const { idInstance, apiToken } = getApiDetails();
+      const chatId = document.getElementById('chatIdMessage').value.trim();
+      const message = document.getElementById('message').value.trim();
+
+      if (!chatId || !message) {
+        displayMessage('Пожалуйста, заполните <strong>chatId</strong> и <strong>сообщение</strong>.', 'error');
+        return;
+      }
+
+      // Валидация формата chatId
+      const personalChatPattern = /^\d+@c\.us$/;
+      const groupChatPattern = /^\d+@g\.us$/;
+      if (!personalChatPattern.test(chatId) && !groupChatPattern.test(chatId)) {
+        displayMessage('chatId должен быть в формате <code>номер@c.us</code> для личных чатов или <code>идентификатор@g.us</code> для групповых чатов.<br>Примеры:<br>Личный чат: <code>33757096082@c.us</code><br>Групповой чат: <code>120363043968066561@g.us</code>', 'error');
+        return;
+      }
+
+      const response = await fetch(`/api/sendMessage/${idInstance}/${apiToken}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ chatId, message })
+      });
+
+      const data = await handleApiResponse(response);
+      output.textContent = JSON.stringify(data, null, 4);
+      displayMessage('Сообщение успешно отправлено.', 'success');
+
+      // Скрытие подсказки при наличии данных
+      placeholderMessage.style.display = 'none';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  /**
+   * Функция для отправки файла по URL
+   */
+  async function sendFileByUrl() {
+    try {
+      const { idInstance, apiToken } = getApiDetails();
+      const chatId = document.getElementById('chatIdFile').value.trim();
+      const urlFile = document.getElementById('urlFile').value.trim();
+      const fileName = document.getElementById('fileName').value.trim();
+      const caption = document.getElementById('caption').value.trim();
+
+      if (!chatId || !urlFile || !fileName) {
+        displayMessage('Пожалуйста, заполните <strong>chatId</strong>, <strong>URL файла</strong> и <strong>имя файла</strong>.', 'error');
+        return;
+      }
+
+      // Валидация формата chatId
+      const personalChatPattern = /^\d+@c\.us$/;
+      const groupChatPattern = /^\d+@g\.us$/;
+      if (!personalChatPattern.test(chatId) && !groupChatPattern.test(chatId)) {
+        displayMessage('chatId должен быть в формате <code>номер@c.us</code> для личных чатов или <code>идентификатор@g.us</code> для групповых чатов.<br>Примеры:<br>Личный чат: <code>33757096082@c.us</code><br>Групповой чат: <code>120363043968066561@g.us</code>', 'error');
+        return;
+      }
+
+      // Валидация URL файла
+      try {
+        new URL(urlFile);
+      } catch (_) {
+        displayMessage('URL файла некорректен. Убедитесь, что он начинается с <code>http://</code> или <code>https://</code>.<br>Пример: <code>https://example.com/file.jpg</code>', 'error');
+        return;
+      }
+
+      // Валидация имени файла
+      if (!/\.\w+$/.test(fileName)) {
+        displayMessage('Имя файла должно содержать расширение.<br>Пример: <code>file.jpg</code>', 'error');
+        return;
+      }
+
+      const payload = {
+        chatId,
+        urlFile,
+        fileName,
+        ...(caption && { caption })
+      };
+
+      const response = await fetch(`/api/sendFileByUrl/${idInstance}/${apiToken}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await handleApiResponse(response);
+      output.textContent = JSON.stringify(data, null, 4);
+      displayMessage('Файл успешно отправлен.', 'success');
+
+      // Скрытие подсказки при наличии данных
+      placeholderMessage.style.display = 'none';
+    } catch (error) {
+      console.error(error);
+    }
+  }
+</script>
+</body>
+</html>
